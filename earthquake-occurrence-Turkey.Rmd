@@ -1,0 +1,88 @@
+---
+title: 'Coursera Developing Data Products Week 3 Assignment: Recent Earthquake Occurrence in Turkey and Syria'
+author: "Anne Strader"
+date: "2023-04-30"
+output: ioslides_presentation
+---
+
+<style>
+pre {
+  font-size: 14px;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, load_plot_libs, message = FALSE}
+library(plotly)
+library(ggplot2)
+library(tidyverse)
+```
+
+## Introduction 
+
+- On 6. February 2023, a moment magnitude ($\sf{M_{w}}$) 7.8 earthquake occurred in southern and central Turkey and northern and western Syria. This earthquake was shortly followed by a $\sf{M_{w}}$ 7.7 earthquake, located 95 km north-northeast from the first event. 
+
+- Large earthquakes tend to produce aftershocks in the surrounding area for long periods of time. For magnitudes as large as those considered in this case, aftershocks can even occur for years after the main event.
+
+- In this assignment, I create a simple visualization of earthquakes that have occurred in the vicinity of the two major events during the past 30 days, to show recent aftershock occurrence over time. The interactive plot is created using the plotly package in R. 
+
+## Acquiring the Data
+
+The United States Geological Survey (USGS) provides continuously-updated datasets with earthquake data (location, time, magnitude, etc.) during recent time periods:
+
+[https://earthquake.usgs.gov/earthquakes/feed/v1.0/csv.php](https://earthquake.usgs.gov/earthquakes/feed/v1.0/csv.php)
+
+First, I downloaded a dataset providing all earthquakes with magnitudes of at least 2.5 that have occurred globally over the past 30 days:
+
+```{r, download_data, echo = TRUE}
+URL <- "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.csv"
+global.quake.data <- read.table(URL, sep = ",", header = TRUE)
+head(global.quake.data)
+```
+
+## Location Filtering
+
+The data were filtered to only include earthquakes within a specified rectangular region surrounding the mainshocks:
+
+- longitude: 34.8 deg E to 42.6 E
+- latitude: 35.7 deg N to 39.8 deg N
+
+```{r, filter_data, echo = TRUE}
+minLon <- 34.8
+maxLon <- 42.6
+minLat <- 35.7
+maxLat <- 39.8
+subset.quake.data <- global.quake.data[global.quake.data$longitude >= minLon & 
+                                           global.quake.data$longitude <= maxLon & 
+                                           global.quake.data$latitude >= minLat & 
+                                           global.quake.data <= maxLat, ]
+```
+
+## Time Formatting
+
+Next, the "time" column of the dataframe was formatted to only include the year, month and day (for clearer plotting).
+
+```{r, time_format, echo = TRUE}
+subset.quake.data$time <- substr(subset.quake.data$time, 0, 10)
+subset.quake.data$time <- as.Date(subset.quake.data$time)
+head(subset.quake.data)
+```
+
+## Magnitude Formatting
+
+Then, earthquakes without a specified magnitude type are removed.
+
+```{r, mag_format, echo = TRUE}
+subset.quake.data <- drop_na(subset.quake.data, magType)
+```
+
+## Plotting Earthquakes vs. Time
+
+```{r, plot_eq_time, echo = TRUE}
+eq.time.plot <- ggplot(data = subset.quake.data, aes(x = time, y = mag, color = magType)) + geom_point()
+ggplotly(eq.time.plot)
+```
+
